@@ -381,6 +381,37 @@ const server = http.createServer(async (req, res) => {
       });
     }
 
+    // ===== ONE-TIME SETUP (no Shell/SSH needed — Render's free tier has none) =====
+    // Lets the bakery owner set the admin password from a webpage instead of
+    // a terminal command. Locked behind SETUP_TOKEN, a secret only you know
+    // (set as an environment variable on your host).
+    if (pathname === '/api/setup-admin' && method === 'POST') {
+      const ip = req.socket.remoteAddress || 'unknown';
+      if (isRateLimited('setup:' + ip)) {
+        return sendError(res, 429, 'Too many attempts. Try again in 15 minutes.');
+      }
+      if (!process.env.SETUP_TOKEN) {
+        return sendError(
+          res,
+          403,
+          'SETUP_TOKEN is not configured on this server. Add it as an environment variable first (see README Section 7).'
+        );
+      }
+      const body = await readBody(req);
+      if (body.setupToken !== process.env.SETUP_TOKEN) {
+        return sendError(res, 401, 'Incorrect setup token.');
+      }
+      if (!body.password || body.password.length < 8) {
+        return sendError(res, 400, 'Password must be at least 8 characters.');
+      }
+      const { hash, salt } = auth.hashPassword(body.password);
+      await db.update((d) => {
+        d.admins[0].passwordHash = hash;
+        d.admins[0].salt = salt;
+      });
+      return sendJSON(res, 200, { success: true });
+    }
+
     // ===== ADMIN AUTH =====
 
     if (pathname === '/api/admin/login' && method === 'POST') {
@@ -675,6 +706,19 @@ const server = http.createServer(async (req, res) => {
         return sendJSON(res, 200, result);
       }
 
+      // clear demo data (replaces needing to run clear-demo-data.js via Shell)
+      if (pathname === '/api/admin/clear-demo-data' && method === 'POST') {
+        await db.update((d) => {
+          d.products = [];
+          d.reviews = [];
+          d.orders = [];
+          d.customCakeRequests = [];
+          d.coupons = [];
+          d.meta.demoData = false;
+        });
+        return sendJSON(res, 200, { success: true });
+      }
+
       return sendError(res, 404, 'Not found');
     }
 
@@ -682,7 +726,7 @@ const server = http.createServer(async (req, res) => {
     if (pathname === '/robots.txt') {
       const host = req.headers.host;
       res.writeHead(200, { 'Content-Type': 'text/plain' });
-      return res.end(`User-agent: *\nAllow: /\nDisallow: /admin\nSitemap: http://${host}/sitemap.xml\n`);
+      return res.end(`User-agent: *\nAllow: /\nDisallow: /admin\nDisallow: /setup-admin\nSitemap: http://${host}/sitemap.xml\n`);
     }
     if (pathname === '/sitemap.xml') {
       const data = await db.readDB();
@@ -704,6 +748,7 @@ const server = http.createServer(async (req, res) => {
       '/checkout': 'checkout.html',
       '/track': 'track.html',
       '/custom-cake': 'custom-cake.html',
+      '/setup-admin': 'setup-admin.html',
       '/admin/login': 'admin/login.html',
       '/admin': 'admin/dashboard.html',
       '/admin/orders': 'admin/orders.html',
