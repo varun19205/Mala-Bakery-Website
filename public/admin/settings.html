@@ -86,11 +86,27 @@
         <button class="btn btn-secondary" type="submit">+ Add coupon</button>
       </form>
     </div>
+    <div class="card">
+      <h3>Danger zone</h3>
+      <p>Once you've added your real products, clear the demo cakes, reviews, coupons and test orders this site shipped with. This cannot be undone.</p>
+      <button class="btn btn-secondary" id="clearDemoBtn" type="button" style="border-color:var(--raspberry);color:var(--raspberry)">Clear Demo Data</button>
+    </div>
   </div>
 </div>
 <script src="/js/common.js"></script>
 <script src="/js/admin-common.js"></script>
 <script>
+document.getElementById('clearDemoBtn').addEventListener('click', async () => {
+  if (!confirm('This will permanently delete all demo products, reviews, coupons and orders. Continue?')) return;
+  try {
+    await api('/api/admin/clear-demo-data', { method: 'POST' });
+    toast('Demo data cleared');
+    setTimeout(() => location.reload(), 1000);
+  } catch (err) {
+    toast(err.message || 'Could not clear demo data');
+  }
+});
+
 async function loadBizForm() {
   const cfg = await api('/api/admin/business-config');
   document.getElementById('bName').value = cfg.name;
