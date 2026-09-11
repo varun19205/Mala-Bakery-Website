@@ -147,7 +147,7 @@ const server = http.createServer(async (req, res) => {
     }
 
     if (pathname === '/api/products' && method === 'GET') {
-      const data = db.readDB();
+      const data = await db.readDB();
       return sendJSON(res, 200, {
         categories: data.categories.sort((a, b) => a.order - b.order),
         products: data.products.filter((p) => p.available !== false || true).map((p) => p),
@@ -155,7 +155,7 @@ const server = http.createServer(async (req, res) => {
     }
 
     if (pathname === '/api/settings/public' && method === 'GET') {
-      const data = db.readDB();
+      const data = await db.readDB();
       const s = data.settings;
       return sendJSON(res, 200, {
         deliveryCharge: s.deliveryCharge,
@@ -171,7 +171,7 @@ const server = http.createServer(async (req, res) => {
 
     if (pathname === '/api/coupons/validate' && method === 'POST') {
       const body = await readBody(req);
-      const data = db.readDB();
+      const data = await db.readDB();
       const coupon = data.coupons.find(
         (c) => c.code.toUpperCase() === (body.code || '').toUpperCase()
       );
@@ -181,7 +181,7 @@ const server = http.createServer(async (req, res) => {
     }
 
     if (pathname === '/api/reviews' && method === 'GET') {
-      const data = db.readDB();
+      const data = await db.readDB();
       return sendJSON(
         res,
         200,
@@ -252,7 +252,7 @@ const server = http.createServer(async (req, res) => {
 
       if (idempotencyKey && idempotencyCache.has(idempotencyKey)) {
         const existingId = idempotencyCache.get(idempotencyKey);
-        const data = db.readDB();
+        const data = await db.readDB();
         const existing = data.orders.find((o) => o.id === existingId);
         if (existing) return sendJSON(res, 200, { success: true, order: existing, deduped: true });
       }
@@ -276,7 +276,7 @@ const server = http.createServer(async (req, res) => {
         return sendError(res, 400, 'Cart is empty');
       }
 
-      const data = db.readDB();
+      const data = await db.readDB();
 
       if (data.settings.holidayMode) {
         return sendError(res, 400, data.settings.holidayMessage || 'We are currently closed for orders.');
@@ -363,7 +363,7 @@ const server = http.createServer(async (req, res) => {
     if (pathname.match(/^\/api\/orders\/[^/]+$/) && method === 'GET') {
       const orderId = pathname.split('/').pop();
       const phone = parsedUrl.searchParams.get('phone') || '';
-      const data = db.readDB();
+      const data = await db.readDB();
       const order = data.orders.find((o) => o.id === orderId);
       if (!order || order.customer.phone.replace(/\D/g, '') !== phone.replace(/\D/g, '')) {
         return sendError(res, 404, 'Order not found. Check your Order ID and phone number.');
@@ -389,7 +389,7 @@ const server = http.createServer(async (req, res) => {
         return sendError(res, 429, 'Too many login attempts. Try again in 15 minutes.');
       }
       const body = await readBody(req);
-      const data = db.readDB();
+      const data = await db.readDB();
       const admin = data.admins.find((a) => a.username === body.username);
       if (
         !admin ||
@@ -424,7 +424,7 @@ const server = http.createServer(async (req, res) => {
 
       // overview / analytics
       if (pathname === '/api/admin/analytics' && method === 'GET') {
-        const data = db.readDB();
+        const data = await db.readDB();
         const now = new Date();
         const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
         const startOfWeek = new Date(startOfDay);
@@ -469,7 +469,7 @@ const server = http.createServer(async (req, res) => {
       }
 
       if (pathname === '/api/admin/new-orders-count' && method === 'GET') {
-        const data = db.readDB();
+        const data = await db.readDB();
         return sendJSON(res, 200, {
           count: data.orders.filter((o) => o.status === 'new').length,
         });
@@ -477,7 +477,7 @@ const server = http.createServer(async (req, res) => {
 
       // orders
       if (pathname === '/api/admin/orders' && method === 'GET') {
-        const data = db.readDB();
+        const data = await db.readDB();
         let orders = data.orders;
         const status = parsedUrl.searchParams.get('status');
         const dateFrom = parsedUrl.searchParams.get('dateFrom');
@@ -500,7 +500,7 @@ const server = http.createServer(async (req, res) => {
 
       const orderDetailMatch = pathname.match(/^\/api\/admin\/orders\/([^/]+)$/);
       if (orderDetailMatch && method === 'GET') {
-        const data = db.readDB();
+        const data = await db.readDB();
         const order = data.orders.find((o) => o.id === orderDetailMatch[1]);
         if (!order) return sendError(res, 404, 'Order not found');
         return sendJSON(res, 200, order);
@@ -526,7 +526,7 @@ const server = http.createServer(async (req, res) => {
 
       // products (admin CRUD)
       if (pathname === '/api/admin/products' && method === 'GET') {
-        const data = db.readDB();
+        const data = await db.readDB();
         return sendJSON(res, 200, data.products);
       }
       if (pathname === '/api/admin/products' && method === 'POST') {
@@ -576,7 +576,7 @@ const server = http.createServer(async (req, res) => {
 
       // reviews moderation
       if (pathname === '/api/admin/reviews' && method === 'GET') {
-        const data = db.readDB();
+        const data = await db.readDB();
         return sendJSON(res, 200, data.reviews.slice().reverse());
       }
       const reviewMatch = pathname.match(/^\/api\/admin\/reviews\/([^/]+)$/);
@@ -594,7 +594,7 @@ const server = http.createServer(async (req, res) => {
 
       // custom cake requests
       if (pathname === '/api/admin/custom-cake' && method === 'GET') {
-        const data = db.readDB();
+        const data = await db.readDB();
         return sendJSON(res, 200, data.customCakeRequests.slice().reverse());
       }
       const ccMatch = pathname.match(/^\/api\/admin\/custom-cake\/([^/]+)$/);
@@ -626,7 +626,7 @@ const server = http.createServer(async (req, res) => {
 
       // settings
       if (pathname === '/api/admin/settings' && method === 'GET') {
-        const data = db.readDB();
+        const data = await db.readDB();
         return sendJSON(res, 200, data.settings);
       }
       if (pathname === '/api/admin/settings' && method === 'PUT') {
@@ -640,7 +640,7 @@ const server = http.createServer(async (req, res) => {
 
       // coupons
       if (pathname === '/api/admin/coupons' && method === 'GET') {
-        const data = db.readDB();
+        const data = await db.readDB();
         return sendJSON(res, 200, data.coupons);
       }
       if (pathname === '/api/admin/coupons' && method === 'POST') {
@@ -685,7 +685,7 @@ const server = http.createServer(async (req, res) => {
       return res.end(`User-agent: *\nAllow: /\nDisallow: /admin\nSitemap: http://${host}/sitemap.xml\n`);
     }
     if (pathname === '/sitemap.xml') {
-      const data = db.readDB();
+      const data = await db.readDB();
       const host = req.headers.host;
       const urls = ['', '/menu', '/track', '/custom-cake']
         .concat(data.products.map((p) => `/product/${p.id}`))
