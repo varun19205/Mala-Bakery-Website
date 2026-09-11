@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Set Admin Password</title>
+<meta name="robots" content="noindex">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Work+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/css/style.css">
+</head>
+<body style="min-height:100vh;display:flex;align-items:center;justify-content:center">
+<div style="max-width:420px;width:100%;padding:20px">
+  <div style="text-align:center;margin-bottom:22px">
+    <h1 style="margin-bottom:2px">Set Admin Password</h1>
+    <p>One-time setup — use this instead of a Shell/terminal.</p>
+  </div>
+  <form id="setupForm" class="card">
+    <div id="notice"></div>
+    <div class="field">
+      <label for="setupToken">Setup token</label>
+      <input class="input" id="setupToken" required autocomplete="off">
+      <p style="font-size:0.85rem;margin-top:6px">The <code>SETUP_TOKEN</code> value you set as an environment variable on your host — not your admin password.</p>
+    </div>
+    <div class="field">
+      <label for="newPassword">New admin password</label>
+      <input class="input" id="newPassword" type="password" required autocomplete="new-password" minlength="8">
+      <p style="font-size:0.85rem;margin-top:6px">At least 8 characters. This is what you'll use to log into <code>/admin/login</code> as username <code>admin</code>.</p>
+    </div>
+    <button class="btn btn-primary btn-block" type="submit">Set Password</button>
+  </form>
+  <p style="text-align:center;margin-top:14px"><a href="/admin/login">Go to staff login →</a></p>
+</div>
+<script src="/js/common.js"></script>
+<script>
+document.getElementById('setupForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const btn = e.target.querySelector('button');
+  btn.disabled = true; btn.textContent = 'Saving…';
+  try {
+    await api('/api/setup-admin', { method: 'POST', body: JSON.stringify({
+      setupToken: document.getElementById('setupToken').value,
+      password: document.getElementById('newPassword').value,
+    })});
+    document.getElementById('notice').innerHTML = '<div class="notice success">Password set! You can now log in at /admin/login.</div>';
+    e.target.reset();
+  } catch (err) {
+    document.getElementById('notice').innerHTML = `<div class="notice error">${escapeHTML(err.message || 'Could not set password.')}</div>`;
+  }
+  btn.disabled = false; btn.textContent = 'Set Password';
+});
+</script>
+</body>
+</html>
