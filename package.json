@@ -1,0 +1,16 @@
+{
+  "name": "bakery-website",
+  "version": "1.0.0",
+  "description": "A real, working bakery ordering website — customer site, cart/checkout, order management, and an admin dashboard. Zero paid dependencies.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "setup": "node setup.js",
+    "clear-demo-data": "node clear-demo-data.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "license": "UNLICENSED",
+  "private": true
+}
