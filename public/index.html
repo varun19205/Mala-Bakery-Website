@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Loading… </title>
+<meta name="description" content="Order fresh cakes, pastries and custom cakes online.">
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#a23b4e">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Work+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<div id="site-header"></div>
+
+<main>
+  <section class="hero">
+    <div class="container">
+      <div>
+        <span class="hero-eyebrow" id="heroEyebrow">Family-owned bakery</span>
+        <h1 id="heroTitle">Baked fresh. Delivered with love.</h1>
+        <p class="lede" id="heroLede">Loading bakery details…</p>
+        <div class="hero-ctas">
+          <a href="/menu" class="btn btn-primary">Order Now</a>
+          <a href="/menu" class="btn btn-secondary">View Menu</a>
+        </div>
+      </div>
+      <div class="hero-art">
+        <img src="/images/hero-bakery.svg" alt="Illustration of a decorated layer cake fresh from the oven" width="600" height="460">
+        <div class="hero-badge">⭐ <span id="heroBadgeText">Loved by regulars</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container">
+      <div class="section-head">
+        <h2>Shop by category</h2>
+        <p>Everything is baked in small batches — pick what you're craving.</p>
+      </div>
+      <div class="grid" id="categoryGrid" style="grid-template-columns:repeat(auto-fill,minmax(150px,1fr))"></div>
+    </div>
+  </section>
+
+  <section class="section band">
+    <div class="container">
+      <div class="section-head">
+        <h2>Best sellers</h2>
+        <p>The ones customers reorder the most.</p>
+      </div>
+      <div class="grid" id="bestsellerGrid"></div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container info-grid">
+      <div>
+        <span class="hero-eyebrow">About us</span>
+        <h2 id="aboutTitle">A neighbourhood bakery, run by family</h2>
+        <p id="aboutBody">We bake everything from scratch every single day, using recipes passed down and perfected over years — no shortcuts, no preservatives, just good ingredients.</p>
+      </div>
+      <div class="feature-list">
+        <div class="feature"><div class="icon">🌾</div><div><h3>Baked fresh daily</h3><p>Nothing sits in a freezer waiting for an order.</p></div></div>
+        <div class="feature"><div class="icon">🧾</div><div><h3>Custom cakes welcome</h3><p>Tell us the flavour, theme and date — we'll handle the rest.</p></div></div>
+        <div class="feature"><div class="icon">🚲</div><div><h3>Pickup or delivery</h3><p id="deliveryFeatureText">Choose what's convenient for you.</p></div></div>
+        <div class="feature"><div class="icon">💬</div><div><h3>A message away</h3><p>Questions? Reach us directly on WhatsApp.</p></div></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section band-ink">
+    <div class="container">
+      <div class="section-head">
+        <h2>What customers say</h2>
+      </div>
+      <div class="review-track" id="reviewTrack"></div>
+      <div style="margin-top:22px">
+        <a href="/menu#leave-review" class="btn btn-gold" id="leaveReviewLink">Leave a review</a>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container info-grid">
+      <div class="info-card">
+        <h3>Opening hours</h3>
+        <p id="infoHours">—</p>
+      </div>
+      <div class="info-card">
+        <h3>Pickup address</h3>
+        <p id="infoAddress">—</p>
+      </div>
+      <div class="info-card">
+        <h3>Delivery area</h3>
+        <p id="infoDelivery">—</p>
+      </div>
+      <div class="info-card">
+        <h3>Talk to us</h3>
+        <p><a id="infoPhone" href="#"></a><br><a id="infoWhatsapp" href="#" target="_blank" rel="noopener">Chat on WhatsApp</a></p>
+      </div>
+    </div>
+  </section>
+</main>
+
+<div id="site-footer"></div>
+<div id="wa-float-slot"></div>
+
+<script src="/js/common.js"></script>
+<script>
+async function init() {
+  const cfg = await getConfig();
+  document.title = cfg.seo.defaultTitle.replace('[BAKERY NAME]', cfg.name).replace('[CITY]', cfg.city);
+  document.querySelector('meta[name="description"]').setAttribute('content', cfg.seo.defaultDescription.replace('[BAKERY NAME]', cfg.name).replace('[CITY]', cfg.city));
+  document.getElementById('heroEyebrow').textContent = `Family-owned bakery in ${cfg.city}`;
+  document.getElementById('heroTitle').textContent = `${cfg.tagline}`;
+  document.getElementById('heroLede').textContent = `${cfg.name} bakes fresh cakes, pastries and custom creations every day for pickup or delivery in ${cfg.city}.`;
+  document.getElementById('deliveryFeatureText').textContent = `We deliver ${cfg.deliveryArea.toLowerCase()}, or you can pick up from our counter.`;
+  document.getElementById('aboutTitle').textContent = `A neighbourhood bakery, run by family`;
+  document.getElementById('infoHours').textContent = cfg.openingHours;
+  document.getElementById('infoAddress').textContent = cfg.pickupAddress;
+  document.getElementById('infoDelivery').textContent = cfg.deliveryArea;
+  const phoneEl = document.getElementById('infoPhone');
+  phoneEl.textContent = cfg.phone;
+  phoneEl.href = `tel:${cfg.phone}`;
+  document.getElementById('infoWhatsapp').href = `https://wa.me/${cfg.whatsapp.replace(/[^\d]/g,'')}`;
+
+  const { categories, products } = await api('/api/products');
+  const catGrid = document.getElementById('categoryGrid');
+  catGrid.innerHTML = categories.map(c => `
+    <a href="/menu?cat=${c.id}" class="product-card" style="align-items:center;text-align:center;padding:22px 10px">
+      <div style="font-size:2rem">🍰</div>
+      <strong>${c.name}</strong>
+    </a>`).join('');
+
+  const bestsellers = products.filter(p => p.bestseller && p.available).slice(0, 4);
+  document.getElementById('bestsellerGrid').innerHTML = bestsellers.map(productCardHTML).join('') || '<p>No bestsellers yet — check back soon!</p>';
+
+  const reviews = await api('/api/reviews');
+  const track = document.getElementById('reviewTrack');
+  track.innerHTML = reviews.slice(0,3).map(r => `
+    <div class="review-card">
+      <div class="stars">${'★'.repeat(r.rating)}${'☆'.repeat(5-r.rating)}</div>
+      <p style="color:#fffaf1cc">${escapeHTML(r.text)}</p>
+      <strong>— ${escapeHTML(r.name)}</strong>
+    </div>`).join('') || '<p>Be the first to leave a review!</p>';
+}
+
+init();
+</script>
+</body>
+</html>
