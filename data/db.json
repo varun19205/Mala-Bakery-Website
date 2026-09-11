@@ -1,0 +1,282 @@
+{
+  "meta": {
+    "demoData": true
+  },
+  "admins": [
+    {
+      "id": "admin-1",
+      "username": "admin",
+      "passwordHash": "REPLACE_ME_SEE_README",
+      "salt": "REPLACE_ME_SEE_README"
+    }
+  ],
+  "categories": [
+    {
+      "id": "cat-cakes",
+      "name": "Cakes",
+      "order": 1
+    },
+    {
+      "id": "cat-pastries",
+      "name": "Pastries",
+      "order": 2
+    },
+    {
+      "id": "cat-cupcakes",
+      "name": "Cupcakes",
+      "order": 3
+    },
+    {
+      "id": "cat-brownies",
+      "name": "Brownies",
+      "order": 4
+    },
+    {
+      "id": "cat-cookies",
+      "name": "Cookies",
+      "order": 5
+    },
+    {
+      "id": "cat-custom",
+      "name": "Custom Cakes",
+      "order": 6
+    }
+  ],
+  "products": [
+    {
+      "id": "prod-1",
+      "name": "Belgian Chocolate Truffle Cake",
+      "description": "Rich Belgian dark chocolate sponge layered with silky chocolate ganache and truffle shavings.",
+      "category": "cat-cakes",
+      "images": [
+        "/images/placeholder-cake-1.svg"
+      ],
+      "basePrice": 650,
+      "variants": [
+        {
+          "id": "v-500g",
+          "name": "500g",
+          "priceDelta": 0
+        },
+        {
+          "id": "v-1kg",
+          "name": "1kg",
+          "priceDelta": 550
+        },
+        {
+          "id": "v-2kg",
+          "name": "2kg",
+          "priceDelta": 1300
+        }
+      ],
+      "addOns": [
+        {
+          "id": "a-candles",
+          "name": "Candles Pack",
+          "price": 30
+        },
+        {
+          "id": "a-card",
+          "name": "Greeting Card",
+          "price": 40
+        }
+      ],
+      "eggless": true,
+      "vegetarian": true,
+      "available": true,
+      "prepTimeMinutes": 90,
+      "bestseller": true,
+      "isNew": false,
+      "discountPercent": 0,
+      "notes": "Eggless available on request at checkout."
+    },
+    {
+      "id": "prod-2",
+      "name": "Fresh Fruit Gateau",
+      "description": "Light vanilla sponge, whipped cream, and a generous topping of seasonal fresh fruit.",
+      "category": "cat-cakes",
+      "images": [
+        "/images/placeholder-cake-2.svg"
+      ],
+      "basePrice": 700,
+      "variants": [
+        {
+          "id": "v-500g",
+          "name": "500g",
+          "priceDelta": 0
+        },
+        {
+          "id": "v-1kg",
+          "name": "1kg",
+          "priceDelta": 600
+        }
+      ],
+      "addOns": [
+        {
+          "id": "a-candles",
+          "name": "Candles Pack",
+          "price": 30
+        }
+      ],
+      "eggless": true,
+      "vegetarian": true,
+      "available": true,
+      "prepTimeMinutes": 90,
+      "bestseller": false,
+      "isNew": true,
+      "discountPercent": 0,
+      "notes": ""
+    },
+    {
+      "id": "prod-3",
+      "name": "Butter Croissant",
+      "description": "Flaky, all-butter croissant baked fresh every morning.",
+      "category": "cat-pastries",
+      "images": [
+        "/images/placeholder-pastry-1.svg"
+      ],
+      "basePrice": 90,
+      "variants": [],
+      "addOns": [],
+      "eggless": false,
+      "vegetarian": true,
+      "available": true,
+      "prepTimeMinutes": 10,
+      "bestseller": true,
+      "isNew": false,
+      "discountPercent": 0,
+      "notes": ""
+    },
+    {
+      "id": "prod-4",
+      "name": "Red Velvet Cupcake (Box of 4)",
+      "description": "Classic red velvet cupcakes topped with cream cheese frosting.",
+      "category": "cat-cupcakes",
+      "images": [
+        "/images/placeholder-cupcake-1.svg"
+      ],
+      "basePrice": 320,
+      "variants": [],
+      "addOns": [],
+      "eggless": true,
+      "vegetarian": true,
+      "available": true,
+      "prepTimeMinutes": 20,
+      "bestseller": true,
+      "isNew": false,
+      "discountPercent": 10,
+      "notes": ""
+    },
+    {
+      "id": "prod-5",
+      "name": "Fudge Walnut Brownie (Box of 6)",
+      "description": "Dense, fudgy brownies loaded with roasted walnuts.",
+      "category": "cat-brownies",
+      "images": [
+        "/images/placeholder-brownie-1.svg"
+      ],
+      "basePrice": 380,
+      "variants": [],
+      "addOns": [],
+      "eggless": false,
+      "vegetarian": true,
+      "available": true,
+      "prepTimeMinutes": 20,
+      "bestseller": false,
+      "isNew": false,
+      "discountPercent": 0,
+      "notes": ""
+    },
+    {
+      "id": "prod-6",
+      "name": "Assorted Butter Cookies (500g)",
+      "description": "A tin of assorted crumbly butter cookies â perfect for gifting.",
+      "category": "cat-cookies",
+      "images": [
+        "/images/placeholder-cookie-1.svg"
+      ],
+      "basePrice": 280,
+      "variants": [],
+      "addOns": [],
+      "eggless": true,
+      "vegetarian": true,
+      "available": true,
+      "prepTimeMinutes": 15,
+      "bestseller": false,
+      "isNew": false,
+      "discountPercent": 0,
+      "notes": ""
+    }
+  ],
+  "orders": [],
+  "coupons": [
+    {
+      "code": "WELCOME10",
+      "type": "percent",
+      "value": 10,
+      "minOrder": 300,
+      "maxDiscount": 150,
+      "expiresAt": "2027-12-31",
+      "usageLimit": 500,
+      "usedCount": 0,
+      "active": true
+    },
+    {
+      "code": "FLAT50",
+      "type": "flat",
+      "value": 50,
+      "minOrder": 500,
+      "maxDiscount": 50,
+      "expiresAt": "2027-12-31",
+      "usageLimit": 500,
+      "usedCount": 0,
+      "active": true
+    }
+  ],
+  "reviews": [
+    {
+      "id": "rev-1",
+      "name": "Priya S.",
+      "rating": 5,
+      "text": "The chocolate truffle cake was a huge hit at my daughter's birthday!",
+      "approved": true,
+      "createdAt": "2026-06-01T10:00:00.000Z"
+    },
+    {
+      "id": "rev-2",
+      "name": "Arjun M.",
+      "rating": 5,
+      "text": "Best croissants in town, always fresh.",
+      "approved": true,
+      "createdAt": "2026-06-15T10:00:00.000Z"
+    }
+  ],
+  "customCakeRequests": [],
+  "settings": {
+    "deliveryCharge": 60,
+    "freeDeliveryThreshold": 1000,
+    "minOrderAmount": 150,
+    "orderCutoffTime": "18:00",
+    "holidayMode": false,
+    "holidayMessage": "",
+    "deliveryZones": [
+      {
+        "pincode": "000000",
+        "label": "Nearby zone",
+        "extraCharge": 0
+      }
+    ],
+    "upi": {
+      "id": "yourbakery@upi",
+      "name": "[BAKERY NAME]"
+    },
+    "paymentMethods": [
+      "cod",
+      "upi"
+    ],
+    "notifications": {
+      "telegramEnabled": false,
+      "emailEnabled": false
+    }
+  }
+}
