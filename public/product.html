@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Product</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Work+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<div id="site-header"></div>
+
+<main class="section">
+  <div class="container">
+    <div id="loading" class="grid" style="grid-template-columns:1fr 1fr">
+      <div class="skeleton" style="height:320px"></div>
+      <div>
+        <div class="skeleton" style="height:32px;width:70%;margin-bottom:14px"></div>
+        <div class="skeleton" style="height:16px;margin-bottom:8px"></div>
+        <div class="skeleton" style="height:16px;width:90%"></div>
+      </div>
+    </div>
+    <div id="notFound" style="display:none" class="empty-state">
+      <h2>Product not found</h2>
+      <p>It may have been removed from the menu.</p>
+      <a href="/menu" class="btn btn-primary">Back to Menu</a>
+    </div>
+    <div id="productRoot" class="product-detail" style="display:none"></div>
+  </div>
+</main>
+
+<div id="site-footer"></div>
+<div id="wa-float-slot"></div>
+
+<script src="/js/common.js"></script>
+<script>
+let PRODUCT = null;
+let state = { variantId: null, addOnIds: [], qty: 1, cake: {} };
+
+function money(n) { return '₹' + n; }
+
+function computeUnitPrice() {
+  let price = PRODUCT.basePrice;
+  if (state.variantId) {
+    const v = PRODUCT.variants.find(v => v.id === state.variantId);
+    if (v) price += v.priceDelta;
+  }
+  for (const aid of state.addOnIds) {
+    const a = PRODUCT.addOns.find(a => a.id === aid);
+    if (a) price += a.price;
+  }
+  if (PRODUCT.discountPercent) price = Math.round(price * (1 - PRODUCT.discountPercent / 100));
+  return price;
+}
+
+function isCakeCategory(catName) {
+  return /cake/i.test(catName || '');
+}
+
+function renderProduct(categories) {
+  const cat = categories.find(c => c.id === PRODUCT.category);
+  const showCakeOptions = isCakeCategory(cat && cat.name);
+
+  document.title = PRODUCT.name;
+
+  const root = document.getElementById('productRoot');
+  root.innerHTML = `
+    <div>
+      <div class="thumb" style="border-radius:var(--radius-l);overflow:hidden;aspect-ratio:4/3">
+        <img src="${(PRODUCT.images && PRODUCT.images[0]) || '/images/placeholder-cake-1.svg'}" alt="${escapeHTML(PRODUCT.name)}" style="width:100%;height:100%;object-fit:cover">
+      </div>
+    </div>
+    <div>
+      <span class="hero-eyebrow">${escapeHTML(cat ? cat.name : '')}</span>
+      <h1>${escapeHTML(PRODUCT.name)}</h1>
+      <p>${escapeHTML(PRODUCT.description)}</p>
+      <div class="tags" style="margin-bottom:14px">
+        ${PRODUCT.eggless ? '<span class="tag egg">Eggless</span>' : ''}
+        ${PRODUCT.vegetarian ? '<span class="tag">Vegetarian</span>' : ''}
+        <span class="tag" style="background:#dbe6f7;color:#2b5590">Ready in ~${PRODUCT.prepTimeMinutes} min</span>
+        ${PRODUCT.available === false ? '<span class="tag" style="background:#fbdada;color:#a63333">Currently unavailable</span>' : ''}
+      </div>
+
+      ${PRODUCT.variants && PRODUCT.variants.length ? `
+      <div class="option-group">
+        <label>Size</label>
+        <div class="option-pill-row" id="variantRow">
+          ${PRODUCT.variants.map((v,i) => `<button type="button" class="option-pill ${i===0?'selected':''}" data-variant="${v.id}">${v.name}${v.priceDelta ? ' (+₹'+v.priceDelta+')' : ''}</button>`).join('')}
+        </div>
+      </div>` : ''}
+
+      ${PRODUCT.addOns && PRODUCT.addOns.length ? `
+      <div class="option-group">
+        <label>Add-ons</label>
+        ${PRODUCT.addOns.map(a => `
+          <div class="addon-row">
+            <label style="font-weight:500;margin:0"><input type="checkbox" data-addon="${a.id}"> ${escapeHTML(a.name)}</label>
+            <span>+₹${a.price}</span>
+          </div>`).join('')}
+      </div>` : ''}
+
+      ${showCakeOptions ? `
+      <div class="option-group">
+        <label>Message on cake (optional)</label>
+        <input class="input" id="cakeMessage" placeholder="e.g. Happy Birthday Riya!">
+      </div>
+      <div class="option-group">
+        <label>Theme / design request (optional)</label>
+        <input class="input" id="cakeTheme" placeholder="e.g. Unicorn theme, football theme">
+      </div>` : ''}
+
+      <div class="option-group">
+        <label>Special instructions (optional)</label>
+        <textarea class="input" id="specialInstructions" placeholder="Any notes for the baker"></textarea>
+      </div>
+
+      <div class="option-group">
+        <label>Quantity</label>
+        <div class="qty-picker">
+          <button type="button" id="qtyMinus" aria-label="Decrease quantity">−</button>
+          <span id="qtyVal">1</span>
+          <button type="button" id="qtyPlus" aria-label="Increase quantity">+</button>
+        </div>
+      </div>
+
+      <div class="sticky-cta">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+          <span style="font-weight:600">Total</span>
+          <span class="price" id="totalPrice">${money(computeUnitPrice())}</span>
+        </div>
+        <button class="btn btn-primary btn-block" id="addToCartBtn" ${PRODUCT.available === false ? 'disabled' : ''}>
+          ${PRODUCT.available === false ? 'Currently unavailable' : 'Add to Cart'}
+        </button>
+      </div>
+    </div>
+  `;
+
+  if (PRODUCT.variants && PRODUCT.variants.length) state.variantId = PRODUCT.variants[0].id;
+
+  root.querySelectorAll('[data-variant]').forEach(btn => btn.addEventListener('click', () => {
+    root.querySelectorAll('[data-variant]').forEach(b => b.classList.remove('selected'));
+    btn.classList.add('selected');
+    state.variantId = btn.dataset.variant;
+    updateTotal();
+  }));
+  root.querySelectorAll('[data-addon]').forEach(cb => cb.addEventListener('change', () => {
+    state.addOnIds = Array.from(root.querySelectorAll('[data-addon]:checked')).map(c => c.dataset.addon);
+    updateTotal();
+  }));
+  document.getElementById('qtyMinus').addEventListener('click', () => { state.qty = Math.max(1, state.qty-1); document.getElementById('qtyVal').textContent = state.qty; updateTotal(); });
+  document.getElementById('qtyPlus').addEventListener('click', () => { state.qty += 1; document.getElementById('qtyVal').textContent = state.qty; updateTotal(); });
+
+  document.getElementById('addToCartBtn').addEventListener('click', () => {
+    const cakeCustomization = showCakeOptions ? {
+      message: document.getElementById('cakeMessage').value,
+      theme: document.getElementById('cakeTheme').value,
+    } : null;
+    addToCart({
+      productId: PRODUCT.id,
+      name: PRODUCT.name,
+      image: (PRODUCT.images && PRODUCT.images[0]) || '',
+      variantId: state.variantId,
+      variantName: state.variantId ? (PRODUCT.variants.find(v=>v.id===state.variantId)||{}).name : null,
+      addOnIds: state.addOnIds,
+      unitPrice: computeUnitPrice(),
+      qty: state.qty,
+      customNotes: document.getElementById('specialInstructions').value,
+      cakeCustomization,
+    });
+    toast('Added to cart 🧁');
+  });
+
+  function updateTotal() {
+    document.getElementById('totalPrice').textContent = money(computeUnitPrice() * state.qty);
+  }
+
+  document.getElementById('loading').style.display = 'none';
+  root.style.display = 'grid';
+}
+
+async function init() {
+  await renderChrome();
+  const id = location.pathname.split('/').pop();
+  try {
+    const { categories, products } = await api('/api/products');
+    PRODUCT = products.find(p => p.id === id);
+    if (!PRODUCT) throw new Error('not found');
+    renderProduct(categories);
+  } catch {
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('notFound').style.display = 'block';
+  }
+}
+init();
+</script>
+</body>
+</html>

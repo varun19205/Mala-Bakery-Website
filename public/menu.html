@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Menu</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Work+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<div id="site-header"></div>
+
+<main class="section">
+  <div class="container">
+    <div class="section-head">
+      <h1>Our Menu</h1>
+      <p>Search or filter by category to find exactly what you're craving.</p>
+    </div>
+
+    <div class="search-row">
+      <input class="input" type="search" id="searchInput" placeholder="Search cakes, pastries, cookies…" aria-label="Search menu">
+    </div>
+    <div class="chip-row" id="chipRow"></div>
+
+    <div id="productGrid" class="grid" aria-live="polite"></div>
+    <p id="emptyMsg" class="empty-state" style="display:none">No items match your search. Try a different keyword or category.</p>
+  </div>
+</main>
+
+<section class="section band" id="leave-review">
+  <div class="container" style="max-width:560px">
+    <h2>Leave a review</h2>
+    <form id="reviewForm">
+      <div class="field">
+        <label for="revName">Your name</label>
+        <input class="input" id="revName" required>
+      </div>
+      <div class="field">
+        <label for="revRating">Rating</label>
+        <select class="input" id="revRating">
+          <option value="5">★★★★★ Excellent</option>
+          <option value="4">★★★★☆ Good</option>
+          <option value="3">★★★☆☆ Okay</option>
+          <option value="2">★★☆☆☆ Poor</option>
+          <option value="1">★☆☆☆☆ Bad</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="revText">Your review</label>
+        <textarea class="input" id="revText" required></textarea>
+      </div>
+      <button class="btn btn-primary btn-block" type="submit">Submit review</button>
+      <p style="font-size:0.85rem;margin-top:8px">Reviews are checked by the bakery before they appear publicly.</p>
+    </form>
+  </div>
+</section>
+
+<div id="site-footer"></div>
+<div id="wa-float-slot"></div>
+
+<script src="/js/common.js"></script>
+<script>
+let ALL_PRODUCTS = [];
+let ALL_CATEGORIES = [];
+let activeCat = new URLSearchParams(location.search).get('cat') || 'all';
+
+function render() {
+  const q = document.getElementById('searchInput').value.trim().toLowerCase();
+  let list = ALL_PRODUCTS;
+  if (activeCat !== 'all') list = list.filter(p => p.category === activeCat);
+  if (q) list = list.filter(p => p.name.toLowerCase().includes(q) || p.description.toLowerCase().includes(q));
+  document.getElementById('productGrid').innerHTML = list.map(productCardHTML).join('');
+  document.getElementById('emptyMsg').style.display = list.length ? 'none' : 'block';
+
+  document.getElementById('chipRow').innerHTML = ['all', ...ALL_CATEGORIES.map(c=>c.id)].map(id => {
+    const label = id === 'all' ? 'All' : ALL_CATEGORIES.find(c=>c.id===id).name;
+    return `<button class="chip ${activeCat===id?'active':''}" data-cat="${id}">${label}</button>`;
+  }).join('');
+  document.querySelectorAll('.chip').forEach(btn => btn.addEventListener('click', () => {
+    activeCat = btn.dataset.cat;
+    render();
+  }));
+}
+
+async function init() {
+  await renderChrome();
+  const { categories, products } = await api('/api/products');
+  ALL_CATEGORIES = categories;
+  ALL_PRODUCTS = products;
+  render();
+  document.getElementById('searchInput').addEventListener('input', render);
+}
+init();
+
+document.getElementById('reviewForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  try {
+    await api('/api/reviews', { method: 'POST', body: JSON.stringify({
+      name: document.getElementById('revName').value,
+      rating: document.getElementById('revRating').value,
+      text: document.getElementById('revText').value,
+    })});
+    toast('Thanks! Your review will appear once approved.');
+    e.target.reset();
+  } catch (err) {
+    toast(err.message || 'Could not submit review');
+  }
+});
+</script>
+</body>
+</html>

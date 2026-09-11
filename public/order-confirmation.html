@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Order Confirmed</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Work+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<div id="site-header"></div>
+
+<main class="section">
+  <div class="container" style="max-width:640px">
+    <div id="root">
+      <div class="skeleton" style="height:200px"></div>
+    </div>
+  </div>
+</main>
+
+<div id="site-footer"></div>
+<div id="wa-float-slot"></div>
+
+<script src="/js/common.js"></script>
+<script>
+async function init() {
+  await renderChrome();
+  const orderId = location.pathname.split('/').pop();
+  const phone = sessionStorage.getItem('last_order_phone') || '';
+  const cfg = await getConfig();
+  try {
+    const order = await api(`/api/orders/${orderId}?phone=${encodeURIComponent(phone)}`);
+    document.getElementById('root').innerHTML = `
+      <div style="text-align:center;margin-bottom:26px">
+        <div style="font-size:3rem">🎉</div>
+        <h1>Order placed!</h1>
+        <p>Thank you — ${cfg.name} has received your order.</p>
+      </div>
+      <div class="card">
+        <div class="summary-row"><span>Order ID</span><strong>${order.id}</strong></div>
+        <div class="summary-row"><span>${order.deliveryType === 'delivery' ? 'Delivery' : 'Pickup'}</span><span>${order.date} at ${order.time}</span></div>
+        <div class="summary-row"><span>Payment</span><span>${order.paymentStatus.replaceAll('_',' ')}</span></div>
+        <div class="summary-row total"><span>Total</span><span>₹${order.total}</span></div>
+      </div>
+      <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:18px">
+        <a href="/track" class="btn btn-secondary">Track this order</a>
+        <a href="/menu" class="btn btn-primary">Order more</a>
+      </div>
+      <p style="margin-top:18px;font-size:0.9rem">Save your Order ID and phone number — you'll need both to track your order.</p>
+    `;
+  } catch {
+    document.getElementById('root').innerHTML = `
+      <div style="text-align:center">
+        <h1>Order placed!</h1>
+        <p>Your Order ID is <strong>${orderId}</strong>. Keep it safe — you'll need it along with your phone number to track your order.</p>
+        <a href="/menu" class="btn btn-primary">Back to Menu</a>
+      </div>`;
+  }
+}
+init();
+</script>
+</body>
+</html>

@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Track Your Order</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Work+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<div id="site-header"></div>
+
+<main class="section">
+  <div class="container" style="max-width:560px">
+    <h1>Track Your Order</h1>
+    <p>Enter your Order ID and the phone number used when ordering.</p>
+    <form id="trackForm" class="card">
+      <div class="field"><label for="orderIdInput">Order ID</label><input class="input" id="orderIdInput" placeholder="ORD-XXXXXX-XXXX" required></div>
+      <div class="field"><label for="phoneInput">Phone number</label><input class="input" id="phoneInput" required></div>
+      <button class="btn btn-primary btn-block" type="submit">Track Order</button>
+    </form>
+    <div id="notice"></div>
+    <div id="result"></div>
+  </div>
+</main>
+
+<div id="site-footer"></div>
+<div id="wa-float-slot"></div>
+
+<script src="/js/common.js"></script>
+<script>
+const STEPS = ['new','confirmed','preparing','ready','out_for_delivery','completed'];
+const LABELS = { new: 'Order received', confirmed: 'Order confirmed', preparing: 'Preparing', ready: 'Ready', out_for_delivery: 'Out for delivery', completed: 'Completed', cancelled: 'Cancelled' };
+
+function renderTimeline(order) {
+  if (order.status === 'cancelled') {
+    return `<div class="notice error">This order was cancelled. Contact us if you have questions.</div>`;
+  }
+  const relevantSteps = order.deliveryType === 'delivery' ? STEPS : STEPS.filter(s => s !== 'out_for_delivery');
+  const currentIdx = relevantSteps.indexOf(order.status);
+  return `
+    <div class="card">
+      <div class="summary-row"><span>Order</span><strong>${order.id}</strong></div>
+      <div class="summary-row"><span>${order.deliveryType === 'delivery' ? 'Delivery' : 'Pickup'}</span><span>${order.date} at ${order.time}</span></div>
+      <div class="summary-row total"><span>Total</span><span>₹${order.total}</span></div>
+    </div>
+    <ul class="timeline">
+      ${relevantSteps.map((s, i) => `
+        <li class="${i < currentIdx ? 'done' : i === currentIdx ? 'current' : ''}">
+          <span class="dot">${i <= currentIdx ? '✓' : ''}</span>
+          <span>${LABELS[s]}</span>
+        </li>
+      `).join('')}
+    </ul>
+  `;
+}
+
+document.getElementById('trackForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const id = document.getElementById('orderIdInput').value.trim();
+  const phone = document.getElementById('phoneInput').value.trim();
+  document.getElementById('notice').innerHTML = '';
+  document.getElementById('result').innerHTML = '<div class="skeleton" style="height:140px"></div>';
+  try {
+    const order = await api(`/api/orders/${encodeURIComponent(id)}?phone=${encodeURIComponent(phone)}`);
+    document.getElementById('result').innerHTML = renderTimeline(order);
+  } catch (err) {
+    document.getElementById('result').innerHTML = '';
+    document.getElementById('notice').innerHTML = `<div class="notice error">${escapeHTML(err.message || 'Order not found.')}</div>`;
+  }
+});
+
+renderChrome();
+</script>
+</body>
+</html>

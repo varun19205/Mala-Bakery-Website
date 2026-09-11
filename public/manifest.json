@@ -1,0 +1,12 @@
+{
+  "name": "Bakery Ordering",
+  "short_name": "Bakery",
+  "description": "Order fresh cakes, pastries and custom cakes for pickup or delivery.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#fbf4e8",
+  "theme_color": "#a23b4e",
+  "icons": [
+    { "src": "/images/placeholder-cake-1.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}

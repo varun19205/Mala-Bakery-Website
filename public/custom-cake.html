@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Custom Cake Request</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Work+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<div id="site-header"></div>
+
+<main class="section">
+  <div class="container" style="max-width:640px">
+    <div class="section-head">
+      <h1>Request a Custom Cake</h1>
+      <p>Tell us your vision — flavour, theme, size, date — and we'll get back to you to confirm details and price. This is separate from regular menu ordering.</p>
+    </div>
+
+    <div id="successState" style="display:none" class="card">
+      <h2>Request received 🎂</h2>
+      <p>Your request ID is <strong id="reqId"></strong>. Our bakery will reach out on the phone number you provided to confirm the design and price.</p>
+      <a href="/menu" class="btn btn-primary">Back to Menu</a>
+    </div>
+
+    <form id="ccForm" class="card">
+      <div id="notice"></div>
+      <div class="field-row two">
+        <div class="field"><label for="ccName">Your name</label><input class="input" id="ccName" required></div>
+        <div class="field"><label for="ccPhone">Phone number</label><input class="input" id="ccPhone" required></div>
+      </div>
+      <div class="field"><label for="ccEmail">Email (optional)</label><input class="input" id="ccEmail" type="email"></div>
+      <div class="field-row two">
+        <div class="field"><label for="ccType">Cake type</label><input class="input" id="ccType" placeholder="e.g. Tiered, sheet, photo cake" required></div>
+        <div class="field"><label for="ccSize">Size / weight</label><input class="input" id="ccSize" placeholder="e.g. 2kg, serves 20"></div>
+      </div>
+      <div class="field-row two">
+        <div class="field"><label for="ccFlavour">Flavour</label><input class="input" id="ccFlavour"></div>
+        <div class="field"><label>Eggless?</label>
+          <select class="input" id="ccEggless"><option value="false">No</option><option value="true">Yes</option></select>
+        </div>
+      </div>
+      <div class="field-row two">
+        <div class="field"><label for="ccOccasion">Occasion</label><input class="input" id="ccOccasion" placeholder="Birthday, anniversary…"></div>
+        <div class="field"><label for="ccBudget">Budget range (optional)</label><input class="input" id="ccBudget" placeholder="e.g. ₹1500–2000"></div>
+      </div>
+      <div class="field-row two">
+        <div class="field"><label for="ccDate">Required date</label><input class="input" id="ccDate" type="date" required></div>
+        <div class="field"><label for="ccTime">Required time</label><input class="input" id="ccTime" type="time"></div>
+      </div>
+      <div class="field"><label for="ccTheme">Theme / design idea</label><input class="input" id="ccTheme"></div>
+      <div class="field"><label for="ccMessage">Message on cake</label><input class="input" id="ccMessage"></div>
+      <div class="field"><label for="ccAdditional">Additional requirements</label><textarea class="input" id="ccAdditional"></textarea></div>
+      <p style="font-size:0.85rem;margin-bottom:16px">Have a reference photo? Send it to us directly on WhatsApp after submitting — we'll link it to your request.</p>
+      <button class="btn btn-primary btn-block" type="submit">Submit Request</button>
+    </form>
+  </div>
+</main>
+
+<div id="site-footer"></div>
+<div id="wa-float-slot"></div>
+
+<script src="/js/common.js"></script>
+<script>
+renderChrome();
+document.getElementById('ccDate').min = new Date().toISOString().split('T')[0];
+
+document.getElementById('ccForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const btn = e.target.querySelector('button[type=submit]');
+  btn.disabled = true;
+  try {
+    const result = await api('/api/custom-cake', { method: 'POST', body: JSON.stringify({
+      name: document.getElementById('ccName').value,
+      phone: document.getElementById('ccPhone').value,
+      email: document.getElementById('ccEmail').value,
+      cakeType: document.getElementById('ccType').value,
+      size: document.getElementById('ccSize').value,
+      flavour: document.getElementById('ccFlavour').value,
+      eggless: document.getElementById('ccEggless').value === 'true',
+      occasion: document.getElementById('ccOccasion').value,
+      budgetRange: document.getElementById('ccBudget').value,
+      requiredDate: document.getElementById('ccDate').value,
+      requiredTime: document.getElementById('ccTime').value,
+      theme: document.getElementById('ccTheme').value,
+      message: document.getElementById('ccMessage').value,
+      additionalRequirements: document.getElementById('ccAdditional').value,
+    })});
+    document.getElementById('ccForm').style.display = 'none';
+    document.getElementById('successState').style.display = 'block';
+    document.getElementById('reqId').textContent = result.id;
+  } catch (err) {
+    document.getElementById('notice').innerHTML = `<div class="notice error">${escapeHTML(err.message || 'Could not submit request.')}</div>`;
+    btn.disabled = false;
+  }
+});
+</script>
+</body>
+</html>

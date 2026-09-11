@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Your Cart</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Work+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<div id="site-header"></div>
+
+<main class="section">
+  <div class="container" style="max-width:720px">
+    <h1>Your Cart</h1>
+    <div id="cartLines"></div>
+    <div id="emptyCart" class="empty-state" style="display:none">
+      <h2>Your cart is empty</h2>
+      <p>Take a look at our menu to find something delicious.</p>
+      <a href="/menu" class="btn btn-primary">Browse Menu</a>
+    </div>
+
+    <div id="cartSummarySection" style="display:none">
+      <div class="card">
+        <div class="field" style="display:flex;gap:10px;align-items:flex-end">
+          <div style="flex:1">
+            <label for="couponInput">Have a coupon?</label>
+            <input class="input" id="couponInput" placeholder="e.g. WELCOME10">
+          </div>
+          <button class="btn btn-secondary" id="applyCouponBtn" type="button">Apply</button>
+        </div>
+        <p id="couponMsg" style="font-size:0.9rem"></p>
+
+        <div class="summary-row"><span>Subtotal</span><span id="sumSubtotal">₹0</span></div>
+        <div class="summary-row" id="sumDiscountRow" style="display:none"><span>Discount</span><span id="sumDiscount">-₹0</span></div>
+        <div class="summary-row"><span>Delivery fee</span><span id="sumDelivery">calculated at checkout</span></div>
+        <div class="summary-row total"><span>Total</span><span id="sumTotal">₹0</span></div>
+      </div>
+      <div style="display:flex;gap:12px;flex-wrap:wrap">
+        <a href="/menu" class="btn btn-secondary">Continue Shopping</a>
+        <a href="/checkout" class="btn btn-primary" style="flex:1" id="checkoutBtn">Checkout</a>
+      </div>
+    </div>
+  </div>
+</main>
+
+<div id="site-footer"></div>
+<div id="wa-float-slot"></div>
+
+<script src="/js/common.js"></script>
+<script>
+let appliedCoupon = null;
+
+function renderCart() {
+  const cart = getCart();
+  const linesHost = document.getElementById('cartLines');
+  if (!cart.length) {
+    linesHost.innerHTML = '';
+    document.getElementById('emptyCart').style.display = 'block';
+    document.getElementById('cartSummarySection').style.display = 'none';
+    return;
+  }
+  document.getElementById('emptyCart').style.display = 'none';
+  document.getElementById('cartSummarySection').style.display = 'block';
+
+  linesHost.innerHTML = cart.map((item, idx) => `
+    <div class="cart-line">
+      <img src="${item.image || '/images/placeholder-cake-1.svg'}" alt="">
+      <div class="meta">
+        <strong>${escapeHTML(item.name)}</strong>
+        ${item.variantName ? `<br><small>Size: ${escapeHTML(item.variantName)}</small>` : ''}
+        ${item.customNotes ? `<br><small>Note: ${escapeHTML(item.customNotes)}</small>` : ''}
+        <div class="qty-picker" style="margin-top:8px">
+          <button type="button" data-minus="${idx}">−</button>
+          <span>${item.qty}</span>
+          <button type="button" data-plus="${idx}">+</button>
+        </div>
+      </div>
+      <div style="text-align:right">
+        <strong>₹${item.unitPrice * item.qty}</strong><br>
+        <button class="btn-ghost" data-remove="${idx}" type="button">Remove</button>
+      </div>
+    </div>
+  `).join('');
+
+  linesHost.querySelectorAll('[data-minus]').forEach(b => b.addEventListener('click', () => {
+    const cart = getCart(); const i = +b.dataset.minus;
+    updateCartQtyAt(i, cart[i].qty - 1);
+    renderCart();
+  }));
+  linesHost.querySelectorAll('[data-plus]').forEach(b => b.addEventListener('click', () => {
+    const cart = getCart(); const i = +b.dataset.plus;
+    updateCartQtyAt(i, cart[i].qty + 1);
+    renderCart();
+  }));
+  linesHost.querySelectorAll('[data-remove]').forEach(b => b.addEventListener('click', () => {
+    removeFromCartAt(+b.dataset.remove);
+    renderCart();
+  }));
+
+  updateSummary();
+}
+
+function subtotal() {
+  return getCart().reduce((s, i) => s + i.unitPrice * i.qty, 0);
+}
+
+async function updateSummary() {
+  const sub = subtotal();
+  document.getElementById('sumSubtotal').textContent = '₹' + sub;
+  let discount = 0;
+  if (appliedCoupon && appliedCoupon.valid) discount = appliedCoupon.discount;
+  document.getElementById('sumDiscountRow').style.display = discount ? 'flex' : 'none';
+  document.getElementById('sumDiscount').textContent = '-₹' + discount;
+  document.getElementById('sumTotal').textContent = '₹' + Math.max(0, sub - discount);
+  sessionStorage.setItem('applied_coupon', appliedCoupon ? JSON.stringify({ code: document.getElementById('couponInput').value.toUpperCase(), discount }) : '');
+}
+
+document.getElementById('applyCouponBtn').addEventListener('click', async () => {
+  const code = document.getElementById('couponInput').value.trim();
+  if (!code) return;
+  try {
+    const result = await api('/api/coupons/validate', { method: 'POST', body: JSON.stringify({ code, subtotal: subtotal() }) });
+    appliedCoupon = result;
+    const msg = document.getElementById('couponMsg');
+    if (result.valid) {
+      msg.textContent = `Coupon applied — you saved ₹${result.discount}!`;
+      msg.style.color = 'var(--sage)';
+    } else {
+      msg.textContent = 'This coupon is not valid for your order (' + result.reason.replaceAll('_',' ') + ').';
+      msg.style.color = 'var(--raspberry)';
+    }
+    updateSummary();
+  } catch {
+    document.getElementById('couponMsg').textContent = 'Could not validate coupon right now.';
+  }
+});
+
+(async () => { await renderChrome(); renderCart(); })();
+</script>
+</body>
+</html>

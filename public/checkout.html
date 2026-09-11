@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Checkout</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Work+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<div id="site-header"></div>
+
+<main class="section">
+  <div class="container" style="max-width:640px">
+    <h1>Checkout</h1>
+    <div id="checkoutEmpty" class="empty-state" style="display:none">
+      <h2>Your cart is empty</h2>
+      <a href="/menu" class="btn btn-primary">Browse Menu</a>
+    </div>
+
+    <form id="checkoutForm">
+      <div id="notice"></div>
+
+      <div class="card">
+        <h3>Delivery method</h3>
+        <div class="option-pill-row">
+          <button type="button" class="option-pill selected" data-delivery="pickup">Pickup</button>
+          <button type="button" class="option-pill" data-delivery="delivery">Home Delivery</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Your details</h3>
+        <div class="field"><label for="custName">Full name</label><input class="input" id="custName" required></div>
+        <div class="field"><label for="custPhone">Phone number</label><input class="input" id="custPhone" type="tel" required placeholder="10-digit mobile number"></div>
+        <div class="field"><label for="custEmail">Email (optional)</label><input class="input" id="custEmail" type="email"></div>
+      </div>
+
+      <div class="card" id="addressCard" style="display:none">
+        <h3>Delivery address</h3>
+        <div class="field"><label for="address">Address</label><textarea class="input" id="address"></textarea></div>
+        <div class="field-row two">
+          <div class="field"><label for="landmark">Landmark (optional)</label><input class="input" id="landmark"></div>
+          <div class="field"><label for="pincode">Pincode</label><input class="input" id="pincode" inputmode="numeric"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>When do you need it?</h3>
+        <div class="field-row two">
+          <div class="field"><label for="orderDate">Date</label><input class="input" id="orderDate" type="date" required></div>
+          <div class="field"><label for="orderTime">Time</label><select class="input" id="orderTime" required></select></div>
+        </div>
+        <div class="field"><label for="orderNotes">Order notes (optional)</label><textarea class="input" id="orderNotes"></textarea></div>
+      </div>
+
+      <div class="card">
+        <h3>Payment method</h3>
+        <div class="option-pill-row" id="paymentRow"></div>
+        <div id="upiBlock" style="display:none;margin-top:14px">
+          <p>Pay via UPI to <strong id="upiId"></strong> and keep the payment reference handy — the bakery will confirm it.</p>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Order summary</h3>
+        <div id="summaryLines"></div>
+        <div class="summary-row"><span>Subtotal</span><span id="cSubtotal">₹0</span></div>
+        <div class="summary-row" id="cDiscountRow" style="display:none"><span>Discount</span><span id="cDiscount">-₹0</span></div>
+        <div class="summary-row"><span>Delivery fee</span><span id="cDelivery">₹0</span></div>
+        <div class="summary-row total"><span>Total</span><span id="cTotal">₹0</span></div>
+      </div>
+
+      <button class="btn btn-primary btn-block" id="placeOrderBtn" type="submit">Place Order</button>
+    </form>
+  </div>
+</main>
+
+<div id="site-footer"></div>
+<div id="wa-float-slot"></div>
+
+<script src="/js/common.js"></script>
+<script>
+let deliveryType = 'pickup';
+let publicSettings = null;
+let couponInfo = null;
+let submitting = false;
+
+function pad(n){ return String(n).padStart(2,'0'); }
+
+function populateTimeSlots() {
+  const dateInput = document.getElementById('orderDate');
+  const timeSelect = document.getElementById('orderTime');
+  const today = new Date();
+  const isToday = dateInput.value === `${today.getFullYear()}-${pad(today.getMonth()+1)}-${pad(today.getDate())}`;
+  const slots = [];
+  for (let h = 10; h <= 20; h++) {
+    ['00','30'].forEach(m => slots.push(`${pad(h)}:${m}`));
+  }
+  const nowMinutes = today.getHours()*60 + today.getMinutes() + 60; // require 1hr lead time
+  timeSelect.innerHTML = slots
+    .filter(s => {
+      if (!isToday) return true;
+      const [h,m] = s.split(':').map(Number);
+      return h*60+m > nowMinutes;
+    })
+    .map(s => `<option value="${s}">${s}</option>`).join('');
+  if (!timeSelect.options.length) {
+    timeSelect.innerHTML = '<option value="">No slots left today — pick another date</option>';
+  }
+}
+
+function renderSummary() {
+  const cart = getCart();
+  document.getElementById('summaryLines').innerHTML = cart.map(i => `
+    <div class="summary-row"><span>${i.qty} × ${escapeHTML(i.name)}${i.variantName ? ' ('+escapeHTML(i.variantName)+')' : ''}</span><span>₹${i.unitPrice*i.qty}</span></div>
+  `).join('');
+  const sub = cart.reduce((s,i)=>s+i.unitPrice*i.qty,0);
+  let discount = 0;
+  if (couponInfo && couponInfo.discount) discount = couponInfo.discount;
+  const afterDiscount = sub - discount;
+  const freeThreshold = publicSettings ? publicSettings.freeDeliveryThreshold : Infinity;
+  const deliveryFee = deliveryType === 'delivery'
+    ? (afterDiscount >= freeThreshold ? 0 : (publicSettings ? publicSettings.deliveryCharge : 0))
+    : 0;
+  document.getElementById('cSubtotal').textContent = '₹'+sub;
+  document.getElementById('cDiscountRow').style.display = discount ? 'flex' : 'none';
+  document.getElementById('cDiscount').textContent = '-₹'+discount;
+  document.getElementById('cDelivery').textContent = deliveryType === 'delivery' ? ('₹'+deliveryFee) : 'Free (pickup)';
+  document.getElementById('cTotal').textContent = '₹'+Math.max(0, afterDiscount + deliveryFee);
+}
+
+document.querySelectorAll('[data-delivery]').forEach(btn => btn.addEventListener('click', () => {
+  document.querySelectorAll('[data-delivery]').forEach(b=>b.classList.remove('selected'));
+  btn.classList.add('selected');
+  deliveryType = btn.dataset.delivery;
+  document.getElementById('addressCard').style.display = deliveryType === 'delivery' ? 'block' : 'none';
+  document.getElementById('address').required = deliveryType === 'delivery';
+  renderSummary();
+}));
+
+document.getElementById('orderDate').addEventListener('change', populateTimeSlots);
+
+async function init() {
+  await renderChrome();
+  const cart = getCart();
+  if (!cart.length) {
+    document.getElementById('checkoutEmpty').style.display = 'block';
+    document.getElementById('checkoutForm').style.display = 'none';
+    return;
+  }
+  publicSettings = await api('/api/settings/public');
+
+  if (publicSettings.holidayMode) {
+    document.getElementById('notice').innerHTML = `<div class="notice warn">${escapeHTML(publicSettings.holidayMessage || 'We are currently not accepting new orders.')}</div>`;
+    document.getElementById('placeOrderBtn').disabled = true;
+  }
+
+  const stored = sessionStorage.getItem('applied_coupon');
+  if (stored) { try { couponInfo = JSON.parse(stored); } catch {} }
+
+  const today = new Date();
+  document.getElementById('orderDate').min = `${today.getFullYear()}-${pad(today.getMonth()+1)}-${pad(today.getDate())}`;
+  document.getElementById('orderDate').value = document.getElementById('orderDate').min;
+  populateTimeSlots();
+
+  document.getElementById('paymentRow').innerHTML = publicSettings.paymentMethods.map((m,i) => {
+    const label = m === 'cod' ? (deliveryType==='delivery' ? 'Cash on Delivery' : 'Cash on Pickup') : 'UPI';
+    return `<button type="button" class="option-pill ${i===0?'selected':''}" data-pay="${m}">${label}</button>`;
+  }).join('');
+  document.getElementById('upiId').textContent = publicSettings.upi.id;
+  document.querySelectorAll('[data-pay]').forEach(btn => btn.addEventListener('click', () => {
+    document.querySelectorAll('[data-pay]').forEach(b=>b.classList.remove('selected'));
+    btn.classList.add('selected');
+    document.getElementById('upiBlock').style.display = btn.dataset.pay === 'upi' ? 'block' : 'none';
+  }));
+
+  renderSummary();
+}
+init();
+
+document.getElementById('checkoutForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  if (submitting) return;
+  submitting = true;
+  const btn = document.getElementById('placeOrderBtn');
+  btn.disabled = true;
+  btn.textContent = 'Placing order…';
+
+  const cart = getCart();
+  const payBtn = document.querySelector('[data-pay].selected');
+  const clientRef = 'ref_' + (crypto.randomUUID ? crypto.randomUUID() : Date.now() + '_' + Math.random());
+
+  const payload = {
+    clientRef,
+    customer: {
+      name: document.getElementById('custName').value,
+      phone: document.getElementById('custPhone').value,
+      email: document.getElementById('custEmail').value,
+    },
+    deliveryType,
+    address: document.getElementById('address').value,
+    landmark: document.getElementById('landmark').value,
+    pincode: document.getElementById('pincode').value,
+    date: document.getElementById('orderDate').value,
+    time: document.getElementById('orderTime').value,
+    notes: document.getElementById('orderNotes').value,
+    paymentMethod: payBtn ? payBtn.dataset.pay : 'cod',
+    couponCode: couponInfo ? couponInfo.code : null,
+    items: cart.map(i => ({
+      productId: i.productId,
+      variantId: i.variantId,
+      addOnIds: i.addOnIds,
+      qty: i.qty,
+      customNotes: i.customNotes,
+      cakeCustomization: i.cakeCustomization,
+    })),
+  };
+
+  try {
+    const result = await api('/api/orders', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Idempotency-Key': clientRef },
+      body: JSON.stringify(payload),
+    });
+    clearCart();
+    sessionStorage.removeItem('applied_coupon');
+    sessionStorage.setItem('last_order_phone', payload.customer.phone);
+    location.href = `/order/confirmation/${result.order.id}`;
+  } catch (err) {
+    document.getElementById('notice').innerHTML = `<div class="notice error">${escapeHTML(err.message || 'Could not place order. Please try again.')}</div>`;
+    window.scrollTo(0,0);
+    btn.disabled = false;
+    btn.textContent = 'Place Order';
+    submitting = false;
+  }
+});
+</script>
+</body>
+</html>
