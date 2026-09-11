@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Overview</title>
+<meta name="robots" content="noindex">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Work+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<div class="admin-shell" id="adminApp">
+  <div class="admin-main" id="adminMain">
+    <div class="admin-topbar">
+      <h1 style="margin:0">Good day! Here's what's happening 👋</h1>
+      <span id="newOrdersBadge" class="status-pill status-new" style="display:none"></span>
+    </div>
+    <div id="root"><div class="skeleton" style="height:200px"></div></div>
+  </div>
+</div>
+<script src="/js/common.js"></script>
+<script src="/js/admin-common.js"></script>
+<script>
+async function init() {
+  if (!(await requireAdminAuth())) return;
+  renderAdminShell('/admin');
+  startOrderPolling();
+  const a = await api('/api/admin/analytics');
+  document.getElementById('root').innerHTML = `
+    <div class="stat-grid">
+      <div class="stat-card"><div class="num">${a.todayOrders}</div><div class="label">Orders today</div></div>
+      <div class="stat-card"><div class="num">${money(a.todayRevenue)}</div><div class="label">Revenue today</div></div>
+      <div class="stat-card"><div class="num">${money(a.weekRevenue)}</div><div class="label">Revenue this week</div></div>
+      <div class="stat-card"><div class="num">${money(a.monthRevenue)}</div><div class="label">Revenue this month</div></div>
+      <div class="stat-card"><div class="num">${a.pendingOrders}</div><div class="label">Pending orders</div></div>
+      <div class="stat-card"><div class="num">${a.completedOrders}</div><div class="label">Completed orders</div></div>
+      <div class="stat-card"><div class="num">${money(a.avgOrderValue)}</div><div class="label">Average order value</div></div>
+      <div class="stat-card"><div class="num">${a.totalCustomers}</div><div class="label">Customers (${a.repeatCustomers} repeat)</div></div>
+    </div>
+
+    <div class="card">
+      <h3>Best sellers</h3>
+      ${a.bestSellers.length ? `<div class="table-wrap"><table><thead><tr><th>Product</th><th>Qty sold</th></tr></thead><tbody>
+        ${a.bestSellers.map(b => `<tr><td>${b.name}</td><td>${b.qty}</td></tr>`).join('')}
+      </tbody></table></div>` : '<p>No sales yet.</p>'}
+    </div>
+
+    <div class="card">
+      <h3>Recent orders</h3>
+      ${a.recentOrders.length ? `<div class="table-wrap"><table><thead><tr><th>Order ID</th><th>Customer</th><th>Total</th><th>Status</th></tr></thead><tbody>
+        ${a.recentOrders.map(o => `<tr onclick="location.href='/admin/orders/${o.id}'" style="cursor:pointer"><td>${o.id}</td><td>${o.customer.name}</td><td>${money(o.total)}</td><td>${statusPill(o.status)}</td></tr>`).join('')}
+      </tbody></table></div>` : '<p>No orders yet. Once your first order comes in, it will show up here immediately.</p>'}
+    </div>
+  `;
+}
+init();
+</script>
+</body>
+</html>

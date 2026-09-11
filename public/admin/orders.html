@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin — Orders</title>
+<meta name="robots" content="noindex">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Work+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<div class="admin-shell" id="adminApp">
+  <div class="admin-main" id="adminMain">
+    <div class="admin-topbar">
+      <h1 style="margin:0">Orders</h1>
+      <span id="newOrdersBadge" class="status-pill status-new" style="display:none"></span>
+    </div>
+
+    <div class="card">
+      <div class="field-row two">
+        <div class="field"><label for="searchInput">Search (order ID, name, phone)</label><input class="input" id="searchInput"></div>
+        <div class="field"><label for="statusFilter">Status</label>
+          <select class="input" id="statusFilter">
+            <option value="">All</option>
+            <option value="new">New</option>
+            <option value="confirmed">Confirmed</option>
+            <option value="preparing">Preparing</option>
+            <option value="ready">Ready</option>
+            <option value="out_for_delivery">Out for delivery</option>
+            <option value="completed">Completed</option>
+            <option value="cancelled">Cancelled</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Order ID</th><th>Customer</th><th>Type</th><th>Date</th><th>Total</th><th>Payment</th><th>Status</th></tr></thead>
+        <tbody id="ordersBody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+<script src="/js/common.js"></script>
+<script src="/js/admin-common.js"></script>
+<script>
+async function load() {
+  const params = new URLSearchParams();
+  const search = document.getElementById('searchInput').value.trim();
+  const status = document.getElementById('statusFilter').value;
+  if (search) params.set('search', search);
+  if (status) params.set('status', status);
+  const orders = await api('/api/admin/orders?' + params.toString());
+  document.getElementById('ordersBody').innerHTML = orders.map(o => `
+    <tr onclick="location.href='/admin/orders/${o.id}'" style="cursor:pointer">
+      <td>${o.id}</td>
+      <td>${escapeHTML(o.customer.name)}<br><small>${escapeHTML(o.customer.phone)}</small></td>
+      <td>${o.deliveryType}</td>
+      <td>${o.date} ${o.time}</td>
+      <td>${money(o.total)}</td>
+      <td>${o.paymentStatus.replaceAll('_',' ')}</td>
+      <td>${statusPill(o.status)}</td>
+    </tr>
+  `).join('') || `<tr><td colspan="7" style="text-align:center;padding:30px">No orders match.</td></tr>`;
+}
+
+async function init() {
+  if (!(await requireAdminAuth())) return;
+  renderAdminShell('/admin/orders');
+  startOrderPolling();
+  document.getElementById('searchInput').addEventListener('input', load);
+  document.getElementById('statusFilter').addEventListener('change', load);
+  load();
+}
+init();
+</script>
+</body>
+</html>

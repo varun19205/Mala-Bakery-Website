@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin — Settings</title>
+<meta name="robots" content="noindex">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Work+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<div class="admin-shell" id="adminApp">
+  <div class="admin-main" id="adminMain">
+    <div class="admin-topbar"><h1 style="margin:0">Settings</h1></div>
+
+    <div class="card">
+      <h3>Bakery information</h3>
+      <p style="font-size:0.9rem">This appears everywhere on the customer site — homepage, footer, WhatsApp messages.</p>
+      <form id="bizForm">
+        <div class="field-row two">
+          <div class="field"><label for="bName">Bakery name</label><input class="input" id="bName"></div>
+          <div class="field"><label for="bTagline">Tagline</label><input class="input" id="bTagline"></div>
+        </div>
+        <div class="field-row two">
+          <div class="field"><label for="bCity">City / area</label><input class="input" id="bCity"></div>
+          <div class="field"><label for="bCurrency">Currency symbol</label><input class="input" id="bCurrency"></div>
+        </div>
+        <div class="field-row two">
+          <div class="field"><label for="bPhone">Phone</label><input class="input" id="bPhone"></div>
+          <div class="field"><label for="bWhatsapp">WhatsApp number (with country code)</label><input class="input" id="bWhatsapp"></div>
+        </div>
+        <div class="field-row two">
+          <div class="field"><label for="bEmail">Email</label><input class="input" id="bEmail"></div>
+          <div class="field"><label for="bInstagram">Instagram URL</label><input class="input" id="bInstagram"></div>
+        </div>
+        <div class="field"><label for="bHours">Opening hours</label><input class="input" id="bHours"></div>
+        <div class="field"><label for="bDeliveryArea">Delivery area (description)</label><input class="input" id="bDeliveryArea"></div>
+        <div class="field"><label for="bAddress">Pickup address</label><textarea class="input" id="bAddress"></textarea></div>
+        <button class="btn btn-primary" type="submit">Save bakery info</button>
+      </form>
+    </div>
+
+    <div class="card">
+      <h3>Delivery & ordering rules</h3>
+      <form id="settingsForm">
+        <div class="field-row two">
+          <div class="field"><label for="sDeliveryCharge">Delivery charge (₹)</label><input class="input" id="sDeliveryCharge" type="number" min="0"></div>
+          <div class="field"><label for="sFreeThreshold">Free delivery above (₹)</label><input class="input" id="sFreeThreshold" type="number" min="0"></div>
+        </div>
+        <div class="field-row two">
+          <div class="field"><label for="sMinOrder">Minimum order amount (₹)</label><input class="input" id="sMinOrder" type="number" min="0"></div>
+          <div class="field"><label for="sCutoff">Order cutoff time</label><input class="input" id="sCutoff" type="time"></div>
+        </div>
+        <div class="field-row two">
+          <div class="field"><label for="sUpiId">UPI ID</label><input class="input" id="sUpiId"></div>
+          <div class="field"><label for="sUpiName">UPI account name</label><input class="input" id="sUpiName"></div>
+        </div>
+        <div class="field" style="display:flex;gap:18px">
+          <label style="display:flex;align-items:center;gap:6px;font-weight:500"><input type="checkbox" id="sPayCod"> Accept Cash</label>
+          <label style="display:flex;align-items:center;gap:6px;font-weight:500"><input type="checkbox" id="sPayUpi"> Accept UPI</label>
+        </div>
+        <div class="field">
+          <label style="display:flex;align-items:center;gap:6px;font-weight:500"><input type="checkbox" id="sHoliday"> Holiday / closure mode (stop accepting new orders)</label>
+        </div>
+        <div class="field"><label for="sHolidayMsg">Message shown to customers when closed</label><input class="input" id="sHolidayMsg"></div>
+        <button class="btn btn-primary" type="submit">Save order settings</button>
+      </form>
+    </div>
+
+    <div class="card">
+      <h3>Coupons</h3>
+      <div id="couponList"></div>
+      <form id="couponForm" style="margin-top:14px">
+        <div class="field-row two">
+          <div class="field"><label for="cCode">Code</label><input class="input" id="cCode" placeholder="SUMMER20" required></div>
+          <div class="field"><label for="cType">Type</label><select class="input" id="cType"><option value="percent">Percent %</option><option value="flat">Flat ₹</option></select></div>
+        </div>
+        <div class="field-row two">
+          <div class="field"><label for="cValue">Value</label><input class="input" id="cValue" type="number" required></div>
+          <div class="field"><label for="cMinOrder">Minimum order (₹)</label><input class="input" id="cMinOrder" type="number" value="0"></div>
+        </div>
+        <div class="field-row two">
+          <div class="field"><label for="cMaxDiscount">Max discount cap (₹, optional)</label><input class="input" id="cMaxDiscount" type="number"></div>
+          <div class="field"><label for="cExpires">Expires on</label><input class="input" id="cExpires" type="date"></div>
+        </div>
+        <button class="btn btn-secondary" type="submit">+ Add coupon</button>
+      </form>
+    </div>
+  </div>
+</div>
+<script src="/js/common.js"></script>
+<script src="/js/admin-common.js"></script>
+<script>
+async function loadBizForm() {
+  const cfg = await api('/api/admin/business-config');
+  document.getElementById('bName').value = cfg.name;
+  document.getElementById('bTagline').value = cfg.tagline;
+  document.getElementById('bCity').value = cfg.city;
+  document.getElementById('bCurrency').value = cfg.currency;
+  document.getElementById('bPhone').value = cfg.phone;
+  document.getElementById('bWhatsapp').value = cfg.whatsapp;
+  document.getElementById('bEmail').value = cfg.email;
+  document.getElementById('bInstagram').value = cfg.instagram;
+  document.getElementById('bHours').value = cfg.openingHours;
+  document.getElementById('bDeliveryArea').value = cfg.deliveryArea;
+  document.getElementById('bAddress').value = cfg.pickupAddress;
+}
+document.getElementById('bizForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  try {
+    await api('/api/admin/business-config', { method: 'PUT', body: JSON.stringify({
+      name: document.getElementById('bName').value,
+      tagline: document.getElementById('bTagline').value,
+      city: document.getElementById('bCity').value,
+      currency: document.getElementById('bCurrency').value,
+      phone: document.getElementById('bPhone').value,
+      whatsapp: document.getElementById('bWhatsapp').value,
+      email: document.getElementById('bEmail').value,
+      instagram: document.getElementById('bInstagram').value,
+      openingHours: document.getElementById('bHours').value,
+      deliveryArea: document.getElementById('bDeliveryArea').value,
+      pickupAddress: document.getElementById('bAddress').value,
+    })});
+    toast('Bakery info saved');
+  } catch (err) { toast(err.message || 'Could not save'); }
+});
+
+async function loadSettingsForm() {
+  const s = await api('/api/admin/settings');
+  document.getElementById('sDeliveryCharge').value = s.deliveryCharge;
+  document.getElementById('sFreeThreshold').value = s.freeDeliveryThreshold;
+  document.getElementById('sMinOrder').value = s.minOrderAmount;
+  document.getElementById('sCutoff').value = s.orderCutoffTime;
+  document.getElementById('sUpiId').value = s.upi.id;
+  document.getElementById('sUpiName').value = s.upi.name;
+  document.getElementById('sPayCod').checked = s.paymentMethods.includes('cod');
+  document.getElementById('sPayUpi').checked = s.paymentMethods.includes('upi');
+  document.getElementById('sHoliday').checked = !!s.holidayMode;
+  document.getElementById('sHolidayMsg').value = s.holidayMessage || '';
+}
+document.getElementById('settingsForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const paymentMethods = [];
+  if (document.getElementById('sPayCod').checked) paymentMethods.push('cod');
+  if (document.getElementById('sPayUpi').checked) paymentMethods.push('upi');
+  try {
+    await api('/api/admin/settings', { method: 'PUT', body: JSON.stringify({
+      deliveryCharge: Number(document.getElementById('sDeliveryCharge').value),
+      freeDeliveryThreshold: Number(document.getElementById('sFreeThreshold').value),
+      minOrderAmount: Number(document.getElementById('sMinOrder').value),
+      orderCutoffTime: document.getElementById('sCutoff').value,
+      upi: { id: document.getElementById('sUpiId').value, name: document.getElementById('sUpiName').value },
+      paymentMethods,
+      holidayMode: document.getElementById('sHoliday').checked,
+      holidayMessage: document.getElementById('sHolidayMsg').value,
+    })});
+    toast('Order settings saved');
+  } catch (err) { toast(err.message || 'Could not save'); }
+});
+
+async function loadCoupons() {
+  const coupons = await api('/api/admin/coupons');
+  document.getElementById('couponList').innerHTML = coupons.length ? `<div class="table-wrap"><table><thead><tr><th>Code</th><th>Type</th><th>Value</th><th>Used</th><th>Active</th></tr></thead><tbody>
+    ${coupons.map(c => `<tr><td>${c.code}</td><td>${c.type}</td><td>${c.type==='percent'?c.value+'%':'₹'+c.value}</td><td>${c.usedCount}${c.usageLimit?'/'+c.usageLimit:''}</td>
+      <td><input type="checkbox" ${c.active?'checked':''} onchange="toggleCoupon('${c.code}', this.checked)"></td></tr>`).join('')}
+  </tbody></table></div>` : '<p>No coupons yet.</p>';
+}
+async function toggleCoupon(code, active) {
+  await api(`/api/admin/coupons/${code}`, { method: 'PUT', body: JSON.stringify({ active }) });
+  loadCoupons();
+}
+document.getElementById('couponForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  try {
+    await api('/api/admin/coupons', { method: 'POST', body: JSON.stringify({
+      code: document.getElementById('cCode').value,
+      type: document.getElementById('cType').value,
+      value: Number(document.getElementById('cValue').value),
+      minOrder: Number(document.getElementById('cMinOrder').value),
+      maxDiscount: document.getElementById('cMaxDiscount').value ? Number(document.getElementById('cMaxDiscount').value) : null,
+      expiresAt: document.getElementById('cExpires').value || null,
+    })});
+    e.target.reset();
+    toast('Coupon added');
+    loadCoupons();
+  } catch (err) { toast(err.message || 'Could not add coupon'); }
+});
+
+async function init() {
+  if (!(await requireAdminAuth())) return;
+  renderAdminShell('/admin/settings');
+  loadBizForm();
+  loadSettingsForm();
+  loadCoupons();
+}
+init();
+</script>
+</body>
+</html>

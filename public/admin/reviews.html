@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin — Reviews</title>
+<meta name="robots" content="noindex">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Work+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<div class="admin-shell" id="adminApp">
+  <div class="admin-main" id="adminMain">
+    <div class="admin-topbar"><h1 style="margin:0">Reviews</h1></div>
+    <div id="root"></div>
+  </div>
+</div>
+<script src="/js/common.js"></script>
+<script src="/js/admin-common.js"></script>
+<script>
+async function toggleApprove(id, approved) {
+  await api(`/api/admin/reviews/${id}`, { method: 'PATCH', body: JSON.stringify({ approved }) });
+  load();
+}
+async function load() {
+  const reviews = await api('/api/admin/reviews');
+  document.getElementById('root').innerHTML = reviews.map(r => `
+    <div class="card">
+      <div style="display:flex;justify-content:space-between">
+        <strong>${escapeHTML(r.name)}</strong>
+        <span class="status-pill ${r.approved?'status-completed':'status-new'}">${r.approved?'Approved':'Pending'}</span>
+      </div>
+      <div class="stars">${'★'.repeat(r.rating)}${'☆'.repeat(5-r.rating)}</div>
+      <p>${escapeHTML(r.text)}</p>
+      <div style="display:flex;gap:10px">
+        ${!r.approved ? `<button class="btn btn-sm btn-primary" onclick="toggleApprove('${r.id}', true)">Approve</button>` : `<button class="btn btn-sm btn-secondary" onclick="toggleApprove('${r.id}', false)">Unpublish</button>`}
+      </div>
+    </div>
+  `).join('') || '<p>No reviews yet.</p>';
+}
+async function init() {
+  if (!(await requireAdminAuth())) return;
+  renderAdminShell('/admin/reviews');
+  load();
+}
+init();
+</script>
+</body>
+</html>

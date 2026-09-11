@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin — Products</title>
+<meta name="robots" content="noindex">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Work+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<div class="admin-shell" id="adminApp">
+  <div class="admin-main" id="adminMain">
+    <div class="admin-topbar">
+      <h1 style="margin:0">Products</h1>
+      <button class="btn btn-primary btn-sm" id="newProductBtn">+ Add product</button>
+    </div>
+
+    <div class="card" id="formCard" style="display:none">
+      <h3 id="formTitle">Add product</h3>
+      <form id="productForm">
+        <input type="hidden" id="pId">
+        <div class="field-row two">
+          <div class="field"><label for="pName">Name</label><input class="input" id="pName" required></div>
+          <div class="field"><label for="pCategory">Category</label><select class="input" id="pCategory" required></select></div>
+        </div>
+        <div class="field"><label for="pDescription">Description</label><textarea class="input" id="pDescription"></textarea></div>
+        <div class="field-row two">
+          <div class="field"><label for="pPrice">Base price (₹)</label><input class="input" id="pPrice" type="number" min="0" required></div>
+          <div class="field"><label for="pPrepTime">Prep time (minutes)</label><input class="input" id="pPrepTime" type="number" min="0" value="30"></div>
+        </div>
+        <div class="field-row two">
+          <div class="field"><label for="pDiscount">Discount % (0 = none)</label><input class="input" id="pDiscount" type="number" min="0" max="90" value="0"></div>
+          <div class="field"><label for="pImage">Image URL (optional)</label><input class="input" id="pImage" placeholder="/images/placeholder-cake-1.svg"></div>
+        </div>
+        <div class="field" style="display:flex;gap:18px;flex-wrap:wrap">
+          <label style="display:flex;align-items:center;gap:6px;font-weight:500"><input type="checkbox" id="pEggless"> Eggless</label>
+          <label style="display:flex;align-items:center;gap:6px;font-weight:500"><input type="checkbox" id="pVegetarian" checked> Vegetarian</label>
+          <label style="display:flex;align-items:center;gap:6px;font-weight:500"><input type="checkbox" id="pBestseller"> Bestseller</label>
+          <label style="display:flex;align-items:center;gap:6px;font-weight:500"><input type="checkbox" id="pIsNew"> New</label>
+          <label style="display:flex;align-items:center;gap:6px;font-weight:500"><input type="checkbox" id="pAvailable" checked> Available</label>
+        </div>
+        <div style="display:flex;gap:12px">
+          <button class="btn btn-primary" type="submit">Save product</button>
+          <button class="btn btn-secondary" type="button" id="cancelFormBtn">Cancel</button>
+        </div>
+      </form>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Name</th><th>Category</th><th>Price</th><th>Available</th><th>Bestseller</th><th>Actions</th></tr></thead>
+        <tbody id="productsBody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+<script src="/js/common.js"></script>
+<script src="/js/admin-common.js"></script>
+<script>
+let CATEGORIES = [];
+let PRODUCTS = [];
+
+function showForm(product) {
+  document.getElementById('formCard').style.display = 'block';
+  document.getElementById('formTitle').textContent = product ? 'Edit product' : 'Add product';
+  document.getElementById('pId').value = product ? product.id : '';
+  document.getElementById('pName').value = product ? product.name : '';
+  document.getElementById('pCategory').value = product ? product.category : (CATEGORIES[0] && CATEGORIES[0].id);
+  document.getElementById('pDescription').value = product ? product.description : '';
+  document.getElementById('pPrice').value = product ? product.basePrice : '';
+  document.getElementById('pPrepTime').value = product ? product.prepTimeMinutes : 30;
+  document.getElementById('pDiscount').value = product ? product.discountPercent : 0;
+  document.getElementById('pImage').value = product && product.images ? product.images[0] || '' : '';
+  document.getElementById('pEggless').checked = product ? !!product.eggless : false;
+  document.getElementById('pVegetarian').checked = product ? !!product.vegetarian : true;
+  document.getElementById('pBestseller').checked = product ? !!product.bestseller : false;
+  document.getElementById('pIsNew').checked = product ? !!product.isNew : false;
+  document.getElementById('pAvailable').checked = product ? product.available !== false : true;
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+document.getElementById('newProductBtn').addEventListener('click', () => showForm(null));
+document.getElementById('cancelFormBtn').addEventListener('click', () => document.getElementById('formCard').style.display = 'none');
+
+document.getElementById('productForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const id = document.getElementById('pId').value;
+  const payload = {
+    name: document.getElementById('pName').value,
+    category: document.getElementById('pCategory').value,
+    description: document.getElementById('pDescription').value,
+    basePrice: Number(document.getElementById('pPrice').value),
+    prepTimeMinutes: Number(document.getElementById('pPrepTime').value),
+    discountPercent: Number(document.getElementById('pDiscount').value),
+    images: document.getElementById('pImage').value ? [document.getElementById('pImage').value] : [],
+    eggless: document.getElementById('pEggless').checked,
+    vegetarian: document.getElementById('pVegetarian').checked,
+    bestseller: document.getElementById('pBestseller').checked,
+    isNew: document.getElementById('pIsNew').checked,
+    available: document.getElementById('pAvailable').checked,
+  };
+  try {
+    if (id) await api(`/api/admin/products/${id}`, { method: 'PUT', body: JSON.stringify(payload) });
+    else await api('/api/admin/products', { method: 'POST', body: JSON.stringify(payload) });
+    document.getElementById('formCard').style.display = 'none';
+    toast('Product saved');
+    load();
+  } catch (err) {
+    toast(err.message || 'Could not save product');
+  }
+});
+
+async function toggleField(id, field, value) {
+  await api(`/api/admin/products/${id}`, { method: 'PUT', body: JSON.stringify({ [field]: value }) });
+  load();
+}
+
+async function deleteProduct(id) {
+  if (!confirm('Delete this product? This cannot be undone.')) return;
+  await api(`/api/admin/products/${id}`, { method: 'DELETE' });
+  toast('Product deleted');
+  load();
+}
+
+async function load() {
+  PRODUCTS = await api('/api/admin/products');
+  document.getElementById('productsBody').innerHTML = PRODUCTS.map(p => {
+    const cat = CATEGORIES.find(c => c.id === p.category);
+    return `
+    <tr>
+      <td>${escapeHTML(p.name)}</td>
+      <td>${cat ? escapeHTML(cat.name) : '—'}</td>
+      <td>₹${p.basePrice}</td>
+      <td><label style="display:flex;align-items:center;gap:6px"><input type="checkbox" ${p.available!==false?'checked':''} onchange="toggleField('${p.id}','available',this.checked)"></label></td>
+      <td><label style="display:flex;align-items:center;gap:6px"><input type="checkbox" ${p.bestseller?'checked':''} onchange="toggleField('${p.id}','bestseller',this.checked)"></label></td>
+      <td style="white-space:nowrap">
+        <button class="btn btn-sm btn-secondary" onclick='editProduct("${p.id}")'>Edit</button>
+        <button class="btn btn-sm btn-secondary" onclick="deleteProduct('${p.id}')">Delete</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function editProduct(id) {
+  showForm(PRODUCTS.find(p => p.id === id));
+}
+
+async function init() {
+  if (!(await requireAdminAuth())) return;
+  renderAdminShell('/admin/products');
+  const data = await api('/api/products');
+  CATEGORIES = data.categories;
+  document.getElementById('pCategory').innerHTML = CATEGORIES.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+  load();
+}
+init();
+</script>
+</body>
+</html>

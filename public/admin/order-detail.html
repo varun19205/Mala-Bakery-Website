@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin — Order Detail</title>
+<meta name="robots" content="noindex">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Work+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<div class="admin-shell" id="adminApp">
+  <div class="admin-main" id="adminMain">
+    <div class="admin-topbar no-print">
+      <h1 style="margin:0">Order Detail</h1>
+      <a href="/admin/orders" class="btn btn-secondary btn-sm">← Back to Orders</a>
+    </div>
+    <div id="root"><div class="skeleton" style="height:300px"></div></div>
+  </div>
+</div>
+<script src="/js/common.js"></script>
+<script src="/js/admin-common.js"></script>
+<script>
+const STATUSES = ['new','confirmed','preparing','ready','out_for_delivery','completed','cancelled'];
+let ORDER = null;
+let CFG = null;
+
+function render() {
+  document.getElementById('root').innerHTML = `
+    <div class="card" id="invoice">
+      <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px">
+        <div>
+          <h2 style="margin-bottom:2px">${CFG.name}</h2>
+          <p style="margin:0">${CFG.pickupAddress}</p>
+        </div>
+        <div style="text-align:right">
+          <strong>Order ${ORDER.id}</strong><br>
+          <span>${new Date(ORDER.createdAt).toLocaleString()}</span>
+        </div>
+      </div>
+      <hr style="border:none;border-top:1px solid var(--line);margin:16px 0">
+      <div class="field-row two">
+        <div>
+          <strong>Customer</strong>
+          <p style="margin:4px 0">${escapeHTML(ORDER.customer.name)}<br>${escapeHTML(ORDER.customer.phone)}${ORDER.customer.email ? '<br>'+escapeHTML(ORDER.customer.email) : ''}</p>
+        </div>
+        <div>
+          <strong>${ORDER.deliveryType === 'delivery' ? 'Delivery' : 'Pickup'}</strong>
+          <p style="margin:4px 0">${ORDER.date} at ${ORDER.time}${ORDER.deliveryType==='delivery' ? '<br>'+escapeHTML(ORDER.address)+(ORDER.landmark?', '+escapeHTML(ORDER.landmark):'')+' — '+escapeHTML(ORDER.pincode) : ''}</p>
+        </div>
+      </div>
+      <div class="table-wrap" style="margin-top:14px">
+        <table><thead><tr><th>Item</th><th>Qty</th><th>Price</th></tr></thead><tbody>
+          ${ORDER.items.map(i => `<tr><td>${escapeHTML(i.name)}${i.variantName?' ('+escapeHTML(i.variantName)+')':''}${i.addOns&&i.addOns.length?'<br><small>+ '+i.addOns.join(', ')+'</small>':''}${i.customNotes?'<br><small>Note: '+escapeHTML(i.customNotes)+'</small>':''}${i.cakeCustomization&&(i.cakeCustomization.message||i.cakeCustomization.theme)?'<br><small>'+[i.cakeCustomization.message&&('Message: '+escapeHTML(i.cakeCustomization.message)),i.cakeCustomization.theme&&('Theme: '+escapeHTML(i.cakeCustomization.theme))].filter(Boolean).join(' · ')+'</small>':''}</td><td>${i.qty}</td><td>${money(i.lineTotal)}</td></tr>`).join('')}
+        </tbody></table>
+      </div>
+      <div style="max-width:280px;margin-left:auto;margin-top:14px">
+        <div class="summary-row"><span>Subtotal</span><span>${money(ORDER.subtotal)}</span></div>
+        ${ORDER.discount ? `<div class="summary-row"><span>Discount ${ORDER.couponCode?'('+ORDER.couponCode+')':''}</span><span>-${money(ORDER.discount)}</span></div>` : ''}
+        <div class="summary-row"><span>Delivery</span><span>${money(ORDER.deliveryFee)}</span></div>
+        <div class="summary-row total"><span>Total</span><span>${money(ORDER.total)}</span></div>
+      </div>
+      ${ORDER.notes ? `<p style="margin-top:14px"><strong>Notes:</strong> ${escapeHTML(ORDER.notes)}</p>` : ''}
+    </div>
+
+    <div class="card no-print">
+      <h3>Update order</h3>
+      <div class="field-row two">
+        <div class="field">
+          <label for="statusSelect">Order status</label>
+          <select class="input" id="statusSelect">
+            ${STATUSES.map(s => `<option value="${s}" ${s===ORDER.status?'selected':''}>${s.replaceAll('_',' ')}</option>`).join('')}
+          </select>
+        </div>
+        <div class="field">
+          <label for="paymentSelect">Payment status</label>
+          <select class="input" id="paymentSelect">
+            ${['cash_on_delivery','pending','payment_initiated','confirmed','failed'].map(s => `<option value="${s}" ${s===ORDER.paymentStatus?'selected':''}>${s.replaceAll('_',' ')}</option>`).join('')}
+          </select>
+        </div>
+      </div>
+      <div style="display:flex;gap:12px;flex-wrap:wrap">
+        <button class="btn btn-primary" id="saveBtn">Save changes</button>
+        <button class="btn btn-secondary" id="printBtn" type="button">🖨 Print Invoice</button>
+        <a class="btn btn-secondary" id="waBtn" target="_blank" rel="noopener">💬 Contact on WhatsApp</a>
+      </div>
+      <p id="saveMsg" style="margin-top:10px"></p>
+    </div>
+  `;
+  document.getElementById('printBtn').addEventListener('click', () => window.print());
+  document.getElementById('waBtn').href = `https://wa.me/${ORDER.customer.phone.replace(/[^\d]/g,'')}`;
+  document.getElementById('saveBtn').addEventListener('click', async () => {
+    const status = document.getElementById('statusSelect').value;
+    const paymentStatus = document.getElementById('paymentSelect').value;
+    try {
+      const result = await api(`/api/admin/orders/${ORDER.id}`, { method: 'PATCH', body: JSON.stringify({ status, paymentStatus }) });
+      ORDER = result.order;
+      document.getElementById('saveMsg').innerHTML = '<span style="color:var(--sage)">Saved!</span>';
+      toast('Order updated');
+    } catch (err) {
+      document.getElementById('saveMsg').innerHTML = `<span style="color:var(--raspberry)">${escapeHTML(err.message)}</span>`;
+    }
+  });
+}
+
+async function init() {
+  if (!(await requireAdminAuth())) return;
+  renderAdminShell('/admin/orders');
+  CFG = await getConfig();
+  const id = location.pathname.split('/').pop();
+  ORDER = await api(`/api/admin/orders/${id}`);
+  render();
+}
+init();
+</script>
+</body>
+</html>

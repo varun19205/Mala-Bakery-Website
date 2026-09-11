@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin — Custom Cake Requests</title>
+<meta name="robots" content="noindex">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Work+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<div class="admin-shell" id="adminApp">
+  <div class="admin-main" id="adminMain">
+    <div class="admin-topbar"><h1 style="margin:0">Custom Cake Requests</h1></div>
+    <div id="root"></div>
+  </div>
+</div>
+<script src="/js/common.js"></script>
+<script src="/js/admin-common.js"></script>
+<script>
+const STATUSES = ['new','contacted','confirmed','declined'];
+async function updateStatus(id, status) {
+  await api(`/api/admin/custom-cake/${id}`, { method: 'PATCH', body: JSON.stringify({ status }) });
+  toast('Updated');
+  load();
+}
+async function load() {
+  const reqs = await api('/api/admin/custom-cake');
+  document.getElementById('root').innerHTML = reqs.map(r => `
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px">
+        <strong>${r.id} — ${escapeHTML(r.name)} (${escapeHTML(r.phone)})</strong>
+        <select onchange="updateStatus('${r.id}', this.value)">
+          ${STATUSES.map(s => `<option value="${s}" ${s===r.status?'selected':''}>${s}</option>`).join('')}
+        </select>
+      </div>
+      <p style="margin:10px 0 4px">
+        <strong>${escapeHTML(r.cakeType)}</strong> · ${escapeHTML(r.size||'—')} · ${r.eggless?'Eggless':'Regular'} · Needed ${r.requiredDate} ${r.requiredTime||''}
+      </p>
+      <p>Occasion: ${escapeHTML(r.occasion||'—')} · Budget: ${escapeHTML(r.budgetRange||'—')}</p>
+      <p>Theme: ${escapeHTML(r.theme||'—')}<br>Message: ${escapeHTML(r.message||'—')}</p>
+      ${r.additionalRequirements ? `<p>Additional: ${escapeHTML(r.additionalRequirements)}</p>` : ''}
+      <a class="btn btn-sm btn-secondary" href="https://wa.me/${r.phone.replace(/[^\d]/g,'')}" target="_blank" rel="noopener">💬 Contact on WhatsApp</a>
+    </div>
+  `).join('') || '<p>No custom cake requests yet.</p>';
+}
+async function init() {
+  if (!(await requireAdminAuth())) return;
+  renderAdminShell('/admin/custom-cake');
+  load();
+}
+init();
+</script>
+</body>
+</html>
